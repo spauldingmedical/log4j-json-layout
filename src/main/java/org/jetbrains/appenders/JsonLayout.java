@@ -89,6 +89,7 @@ public class JsonLayout extends Layout {
         final LoggerField host = loggerfield("host");
         final LoggerField path = loggerfield("path");
         final LoggerField tags = loggerfield("tags");
+        final LoggerField extra = loggerfield("extra");
         final LoggerField timestamp = loggerfield("@timestamp");
         final LoggerField thread = loggerfield("thread");
         final LoggerField version = loggerfield("@version");
@@ -195,60 +196,12 @@ public class JsonLayout extends Layout {
             hasPrevField = true;
         }
 
-        if (renderedFieldLabels.location.isEnabled) {
-            if (hasPrevField) {
-                buf.append(',');
-            }
-            hasPrevField = appendLocation(buf, event);
-        }
-
-        if (renderedFieldLabels.logger.isEnabled) {
-            if (hasPrevField) {
-                buf.append(',');
-            }
-            appendField(buf, renderedFieldLabels.logger.renderedLabel, event.getLoggerName());
-            hasPrevField = true;
-        }
-
         if (renderedFieldLabels.message.isEnabled) {
             if (hasPrevField) {
                 buf.append(',');
             }
             appendField(buf, renderedFieldLabels.message.renderedLabel, event.getRenderedMessage());
             hasPrevField = true;
-        }
-
-        if (renderedFieldLabels.mdc.isEnabled) {
-            if (hasPrevField) {
-                buf.append(',');
-            }
-            hasPrevField = appendMDC(buf, event);
-        }
-
-        if (renderedFieldLabels.ndc.isEnabled) {
-            String ndc = event.getNDC();
-            if (ndc != null && !ndc.isEmpty()) {
-                if (hasPrevField) {
-                    buf.append(',');
-                }
-                appendField(buf, renderedFieldLabels.ndc.renderedLabel, event.getNDC());
-                hasPrevField = true;
-            }
-        }
-
-        if (renderedFieldLabels.host.isEnabled) {
-            if (hasPrevField) {
-                buf.append(',');
-            }
-            appendField(buf, renderedFieldLabels.host.renderedLabel, hostName);
-            hasPrevField = true;
-        }
-
-        if (renderedFieldLabels.path.isEnabled) {
-            if (hasPrevField) {
-                buf.append(',');
-            }
-            hasPrevField = appendSourcePath(buf, event);
         }
 
         if (renderedFieldLabels.tags.isEnabled) {
@@ -267,11 +220,83 @@ public class JsonLayout extends Layout {
             hasPrevField = true;
         }
 
-        if (renderedFieldLabels.thread.isEnabled) {
+        if (
+            renderedFieldLabels.mdc.isEnabled ||
+            renderedFieldLabels.ndc.isEnabled ||
+            renderedFieldLabels.host.isEnabled ||
+            renderedFieldLabels.path.isEnabled ||
+            renderedFieldLabels.thread.isEnabled ||
+            renderedFieldLabels.logger.isEnabled
+        ) {
+            StringBuilder extraBuf = new StringBuilder();
+            extraBuf.setLength(0);
+            boolean extraHasPrevField = false;
+
+            extraBuf.append('{');
+
+            if (renderedFieldLabels.location.isEnabled) {
+                if (extraHasPrevField) {
+                    buf.append(',');
+                }
+                extraHasPrevField = appendLocation(extraBuf, event);
+            }
+
+            if (renderedFieldLabels.mdc.isEnabled) {
+                if (extraHasPrevField) {
+                    extraBuf.append(',');
+                }
+                extraHasPrevField = appendMDC(extraBuf, event);
+            }
+
+            if (renderedFieldLabels.ndc.isEnabled) {
+                String ndc = event.getNDC();
+                if (ndc != null && !ndc.isEmpty()) {
+                    if (extraHasPrevField) {
+                        extraBuf.append(',');
+                    }
+                    appendField(extraBuf, renderedFieldLabels.ndc.renderedLabel, event.getNDC());
+                    extraHasPrevField = true;
+                }
+            }
+
+            if (renderedFieldLabels.host.isEnabled) {
+                if (extraHasPrevField) {
+                    extraBuf.append(',');
+                }
+                appendField(extraBuf, renderedFieldLabels.host.renderedLabel, hostName);
+                extraHasPrevField = true;
+            }
+
+            if (renderedFieldLabels.path.isEnabled) {
+                if (extraHasPrevField) {
+                    extraBuf.append(',');
+                }
+                extraHasPrevField = appendSourcePath(extraBuf, event);
+            }
+
+            if (renderedFieldLabels.thread.isEnabled) {
+                if (extraHasPrevField) {
+                    extraBuf.append(',');
+                }
+                appendField(extraBuf, renderedFieldLabels.thread.renderedLabel, event.getThreadName());
+                extraHasPrevField = true;
+            }
+
+            if (renderedFieldLabels.logger.isEnabled) {
+                if (extraHasPrevField) {
+                    extraBuf.append(',');
+                }
+                appendField(extraBuf, renderedFieldLabels.logger.renderedLabel, event.getLoggerName());
+                extraHasPrevField = true;
+            }
+            extraBuf.append("}");
+
             if (hasPrevField) {
                 buf.append(',');
             }
-            appendField(buf, renderedFieldLabels.thread.renderedLabel, event.getThreadName());
+            appendQuotedName(buf, renderedFieldLabels.extra.renderedLabel);
+            buf.append(':');
+            buf.append(extraBuf);
             hasPrevField = true;
         }
 
