@@ -93,17 +93,17 @@ public class JsonLayoutTest {
         asserter
             .assertThat("$.level", equalTo("ERROR"))
             .assertThat("$.location", nullValue())
-            .assertThat("$.logger", equalTo(logger.getName()))
-            .assertThat("$.mdc.mdc_key_1", equalTo("1"))
-            .assertThat("$.mdc.mdc_key_2", equalTo("2"))
-            .assertThat("$.mdc.mdc_key_3", equalTo("3"))
-            .assertThat("$.mdc.mdc_key_4", equalTo("4.1"))
+            .assertThat("$.extra.logger", equalTo(logger.getName()))
+            .assertThat("$.extra.mdc.mdc_key_1", equalTo("1"))
+            .assertThat("$.extra.mdc.mdc_key_2", equalTo("2"))
+            .assertThat("$.extra.mdc.mdc_key_3", equalTo("3"))
+            .assertThat("$.extra.mdc.mdc_key_4", equalTo("4.1"))
             .assertThat("$.message", equalTo("Hello World"))
-            .assertThat("$.ndc", equalTo("ndc_1 ndc_2 ndc_3"))
-            .assertThat("$.path", nullValue())
-            .assertThat("$.host", equalTo(InetAddress.getLocalHost().getHostName()))
+            .assertThat("$.extra.ndc", equalTo("ndc_1 ndc_2 ndc_3"))
+            .assertThat("$.extra.path", nullValue())
+            .assertThat("$.extra.host", equalTo(InetAddress.getLocalHost().getHostName()))
             .assertThat("$.tags", nullValue())
-            .assertThat("$.thread", equalTo(Thread.currentThread().getName()))
+            .assertThat("$.extra.thread", equalTo(Thread.currentThread().getName()))
             .assertThat("$.@timestamp", notNullValue())
             .assertThat("$.@version", equalTo("1"));
     }
@@ -117,12 +117,12 @@ public class JsonLayoutTest {
         logger.info("Hello World");
 
         with(consoleWriter.toString())
-            .assertThat("$.location", nullValue())
-            .assertThat("$.renamed_location", notNullValue())
-            .assertThat("$.renamed_location.class", equalTo(getClass().getName()))
-            .assertThat("$.renamed_location.renamed_file", equalTo(getClass().getSimpleName() + ".java"))
-            .assertThat("$.renamed_location.method", equalTo(testName.getMethodName()))
-            .assertThat("$.renamed_location.line", notNullValue());
+            .assertThat("$.extra.location", nullValue())
+            .assertThat("$.extra.renamed_location", notNullValue())
+            .assertThat("$.extra.renamed_location.class", equalTo(getClass().getName()))
+            .assertThat("$.extra.renamed_location.renamed_file", equalTo(getClass().getSimpleName() + ".java"))
+            .assertThat("$.extra.renamed_location.method", equalTo(testName.getMethodName()))
+            .assertThat("$.extra.renamed_location.line", notNullValue());
     }
 
     @Test
@@ -160,15 +160,15 @@ public class JsonLayoutTest {
         with(consoleWriter.toString())
             .assertThat("$.exception", nullValue())
             .assertThat("$.level", equalTo("ERROR"))
-            .assertThat("$.logger", equalTo(logger.getName()))
-            .assertThat("$.mdc", nullValue())
+            .assertThat("$.extra.logger", equalTo(logger.getName()))
+            .assertThat("$.extra.mdc", nullValue())
             .assertThat("$.message", equalTo("Hello World"))
-            .assertThat("$.ndc", nullValue())
-            .assertThat("$.renamed_ndc", nullValue())
-            .assertThat("$.path", nullValue())
-            .assertThat("$.host", equalTo(InetAddress.getLocalHost().getHostName()))
+            .assertThat("$.extra.ndc", nullValue())
+            .assertThat("$.extra.renamed_ndc", nullValue())
+            .assertThat("$.extra.path", nullValue())
+            .assertThat("$.extra.host", equalTo(InetAddress.getLocalHost().getHostName()))
             .assertThat("$.tags", nullValue())
-            .assertThat("$.thread", equalTo(Thread.currentThread().getName()))
+            .assertThat("$.extra.thread", equalTo(Thread.currentThread().getName()))
             .assertThat("$.@timestamp", notNullValue())
             .assertThat("$.@version", equalTo("1"));
     }
@@ -213,6 +213,20 @@ public class JsonLayoutTest {
     }
 
     @Test
+    public void testRenameExtra() throws Exception {
+        consoleLayout.setRenamedFieldLabels("extra:renamed_extra,thread:renamed_thread");
+        consoleLayout.activateOptions();
+
+        logger.info("Hello World");
+
+        with(consoleWriter.toString())
+                .assertThat("$.extra", nullValue())
+                .assertThat("$.renamed_extra.thread", nullValue())
+                .assertThat("$.renamed_extra.renamed_thread", equalTo(Thread.currentThread().getName()))
+            ;
+    }
+
+    @Test
     public void testRenameExceptionFieldLabel() throws Exception {
         consoleLayout.setRenamedFieldLabels("exception.message:renamed_message");
         consoleLayout.activateOptions();
@@ -233,8 +247,8 @@ public class JsonLayoutTest {
         logger.info("Hello World", new RuntimeException("Test"));
 
         with(consoleWriter.toString())
-                .assertThat("$.location.method", nullValue())
-                .assertThat("$.location.renamed_method", equalTo("testRenameLocationFieldLabel"));
+                .assertThat("$.extra.location.method", nullValue())
+                .assertThat("$.extra.location.renamed_method", equalTo("testRenameLocationFieldLabel"));
     }
 
     @Test
@@ -259,7 +273,7 @@ public class JsonLayoutTest {
 
         logger.info("Hello World!");
         with(fileWriter.toString())
-            .assertThat("$.path", equalTo(new File(fileAppender.getFile()).getCanonicalPath()));
+            .assertThat("$.extra.path", equalTo(new File(fileAppender.getFile()).getCanonicalPath()));
     }
 
     @Test
@@ -287,7 +301,7 @@ public class JsonLayoutTest {
 
         testLogger.info("Hello World!");
         with(fileWriter.toString())
-            .assertThat("$.path", equalTo(new File(fileAppender.getFile()).getCanonicalPath()));
+            .assertThat("$.extra.path", equalTo(new File(fileAppender.getFile()).getCanonicalPath()));
     }
 
     @Test
@@ -320,9 +334,8 @@ public class JsonLayoutTest {
         testLogger.info("Hello World");
 
         with(fileWriter.toString())
-            .assertThat("$.path", equalTo(new File(fileAppender.getFile()).getCanonicalPath()));
+            .assertThat("$.extra.path", equalTo(new File(fileAppender.getFile()).getCanonicalPath()));
     }
-
 
     @Test
     public void testEscape() throws Exception {
@@ -331,5 +344,4 @@ public class JsonLayoutTest {
         with(consoleWriter.toString())
             .assertThat("$.message", equalTo("H\"e\\l/\nl\ro\u0000W\bo\tr\fl\u0001d"));
     }
-
 }
