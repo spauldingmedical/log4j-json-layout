@@ -27,8 +27,6 @@ import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.regex.Pattern;
 
@@ -152,8 +150,6 @@ public class JsonLayout extends Layout {
     private final Map<String, String> fields;
     private RenderedFieldLabels renderedFieldLabels = new RenderedFieldLabels();
 
-    private final DateFormat dateFormat;
-    private final Date date;
     private final StringBuilder buf;
 
     private String[] tags;
@@ -165,10 +161,6 @@ public class JsonLayout extends Layout {
     public JsonLayout() {
         fields = new HashMap<String, String>();
 
-        dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
-        dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
-
-        date = new Date();
         buf = new StringBuilder(32*1024);
     }
 
@@ -215,8 +207,10 @@ public class JsonLayout extends Layout {
             if (hasPrevField) {
                 buf.append(',');
             }
+
+            final Date date = new Date();
             date.setTime(event.getTimeStamp());
-            appendField(buf, renderedFieldLabels.timestamp.renderedLabel, dateFormat.format(date));
+            appendField(buf, renderedFieldLabels.timestamp.renderedLabel, Long.toString(date.getTime()));
             hasPrevField = true;
         }
 
