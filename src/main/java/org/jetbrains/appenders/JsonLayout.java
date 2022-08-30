@@ -79,6 +79,7 @@ public class JsonLayout extends Layout {
 
         final LoggerField exception = loggerfield("exception");
         final LoggerField level = loggerfield("level");
+        final LoggerField syslogLevel = loggerfield("syslogLevel");
         final LoggerField location = loggerfield("location");
         final LoggerField logger = loggerfield("logger");
         final LoggerField message = loggerfield("message");
@@ -171,9 +172,6 @@ public class JsonLayout extends Layout {
         buf.append('{');
 
         boolean hasPrevField = false;
-        if (renderedFieldLabels.exception.isEnabled) {
-            hasPrevField = appendException(buf, event);
-        }
 
         if (hasPrevField) {
             buf.append(',');
@@ -185,6 +183,14 @@ public class JsonLayout extends Layout {
                 buf.append(',');
             }
             appendField(buf, renderedFieldLabels.level.renderedLabel, event.getLevel().toString());
+            hasPrevField = true;
+        }
+
+        if (renderedFieldLabels.syslogLevel.isEnabled) {
+            if (hasPrevField) {
+                buf.append(',');
+            }
+            appendField(buf, renderedFieldLabels.syslogLevel.renderedLabel, event.getLevel().getSyslogEquivalent());
             hasPrevField = true;
         }
 
@@ -214,13 +220,21 @@ public class JsonLayout extends Layout {
             hasPrevField = true;
         }
 
+        if (renderedFieldLabels.logger.isEnabled) {
+            if (hasPrevField) {
+                buf.append(',');
+            }
+            appendField(buf, renderedFieldLabels.logger.renderedLabel, event.getLoggerName());
+            hasPrevField = true;
+        }
+
         if (
             renderedFieldLabels.mdc.isEnabled ||
             renderedFieldLabels.ndc.isEnabled ||
             renderedFieldLabels.host.isEnabled ||
             renderedFieldLabels.path.isEnabled ||
             renderedFieldLabels.thread.isEnabled ||
-            renderedFieldLabels.logger.isEnabled
+            renderedFieldLabels.exception.isEnabled
         ) {
             StringBuilder extraBuf = new StringBuilder();
             extraBuf.setLength(0);
@@ -228,9 +242,13 @@ public class JsonLayout extends Layout {
 
             extraBuf.append('{');
 
+            if (renderedFieldLabels.exception.isEnabled) {
+                extraHasPrevField = appendException(extraBuf, event);
+            }
+
             if (renderedFieldLabels.location.isEnabled) {
                 if (extraHasPrevField) {
-                    buf.append(',');
+                    extraBuf.append(',');
                 }
                 extraHasPrevField = appendLocation(extraBuf, event);
             }
@@ -276,13 +294,6 @@ public class JsonLayout extends Layout {
                 extraHasPrevField = true;
             }
 
-            if (renderedFieldLabels.logger.isEnabled) {
-                if (extraHasPrevField) {
-                    extraBuf.append(',');
-                }
-                appendField(extraBuf, renderedFieldLabels.logger.renderedLabel, event.getLoggerName());
-                extraHasPrevField = true;
-            }
             extraBuf.append("}");
 
             if (hasPrevField) {
@@ -479,9 +490,6 @@ public class JsonLayout extends Layout {
             return false;
         }
 
-        appendQuotedName(buf, renderedFieldLabels.exception.renderedLabel);
-        buf.append(":{");
-
         boolean hasPrevField = false;
 
         @SuppressWarnings("ThrowableResultOfMethodCallIgnored")
@@ -518,8 +526,6 @@ public class JsonLayout extends Layout {
             }
             buf.append('\"');
         }
-
-        buf.append('}');
 
         return true;
     }

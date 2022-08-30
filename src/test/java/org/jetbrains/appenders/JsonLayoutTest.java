@@ -83,17 +83,17 @@ public class JsonLayoutTest {
         logger.error("Hello World", exception);
 
         JsonAsserter asserter = with(consoleWriter.toString())
-            .assertThat("$.exception.message", equalTo(exception.getMessage()))
-            .assertThat("$.exception.class", equalTo(exception.getClass().getName()));
+            .assertThat("$.extra.message", equalTo(exception.getMessage()))
+            .assertThat("$.extra.class", equalTo(exception.getClass().getName()));
         for (StackTraceElement e : exception.getStackTrace()) {
             asserter
-                .assertThat("$.exception.stacktrace", containsString(e.getClassName()))
-                .assertThat("$.exception.stacktrace", containsString(e.getMethodName()));
+                .assertThat("$.extra.stacktrace", containsString(e.getClassName()))
+                .assertThat("$.extra.stacktrace", containsString(e.getMethodName()));
         }
         asserter
             .assertThat("$.level", equalTo("ERROR"))
             .assertThat("$.location", nullValue())
-            .assertThat("$.extra.logger", equalTo(logger.getName()))
+            .assertThat("$.logger", equalTo(logger.getName()))
             .assertThat("$.extra.mdc.mdc_key_1", equalTo("1"))
             .assertThat("$.extra.mdc.mdc_key_2", equalTo("2"))
             .assertThat("$.extra.mdc.mdc_key_3", equalTo("3"))
@@ -160,7 +160,7 @@ public class JsonLayoutTest {
         with(consoleWriter.toString())
             .assertThat("$.exception", nullValue())
             .assertThat("$.level", equalTo("ERROR"))
-            .assertThat("$.extra.logger", equalTo(logger.getName()))
+            .assertThat("$.logger", equalTo(logger.getName()))
             .assertThat("$.extra.mdc", nullValue())
             .assertThat("$.message", equalTo("Hello World"))
             .assertThat("$.extra.ndc", nullValue())
@@ -234,8 +234,8 @@ public class JsonLayoutTest {
         logger.info("Hello World", new RuntimeException("Test"));
 
         with(consoleWriter.toString())
-                .assertThat("$.exception.message", nullValue())
-                .assertThat("$.exception.renamed_message", equalTo("Test"));
+                .assertThat("$.extra.message", nullValue())
+                .assertThat("$.extra.renamed_message", equalTo("Test"));
     }
 
     @Test
