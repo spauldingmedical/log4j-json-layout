@@ -75,24 +75,22 @@ public class JsonLayout extends Layout {
 
         final LoggerField exceptionClass = loggerfield("exception.class", "class");
         final LoggerField exceptionMessage = loggerfield("exception.message", "message");
+        final LoggerField exceptionStacktrace = loggerfield("exception.stacktrace", "stacktrace");
 
-        final LoggerField version = loggerfield("v");
-        final LoggerField app = loggerfield("a");
-        final LoggerField timestamp = loggerfield("t");
-        final LoggerField level = loggerfield("l");
-        final LoggerField message = loggerfield("m");
-        final LoggerField env = loggerfield("e");
-        final LoggerField logger = loggerfield("lg");
-        final LoggerField extra = loggerfield("x");
-        final LoggerField exceptionStacktrace = loggerfield("s", "s");
         final LoggerField exception = loggerfield("exception");
+        final LoggerField level = loggerfield("level");
         final LoggerField location = loggerfield("location");
+        final LoggerField logger = loggerfield("logger");
+        final LoggerField message = loggerfield("message");
         final LoggerField mdc = loggerfield("mdc");
         final LoggerField ndc = loggerfield("ndc");
         final LoggerField host = loggerfield("host");
         final LoggerField path = loggerfield("path");
         final LoggerField tags = loggerfield("tags");
+        final LoggerField extra = loggerfield("extra");
+        final LoggerField timestamp = loggerfield("@timestamp");
         final LoggerField thread = loggerfield("thread");
+        final LoggerField version = loggerfield("@version");
 
         RenderedFieldLabels() {
             location.disable(); //By default location is not enabled as it's pretty expensive to resolve
@@ -141,7 +139,7 @@ public class JsonLayout extends Layout {
         }
     }
 
-    private static final String VERSION = "4";
+    private static final String VERSION = "1";
 
     private String tagsVal;
     private String fieldsVal;
@@ -173,28 +171,14 @@ public class JsonLayout extends Layout {
         buf.append('{');
 
         boolean hasPrevField = false;
+        if (renderedFieldLabels.exception.isEnabled) {
+            hasPrevField = appendException(buf, event);
+        }
+
         if (hasPrevField) {
             buf.append(',');
         }
         hasPrevField = appendFields(buf, event);
-
-        if (renderedFieldLabels.app.isEnabled) {
-            if (hasPrevField) {
-                buf.append(',');
-            }
-            String app = System.getenv("APP_NAME");
-            appendField(buf, renderedFieldLabels.app.renderedLabel, app != null ? app : "unknown");
-            hasPrevField = true;
-        }
-
-        if (renderedFieldLabels.env.isEnabled) {
-            if (hasPrevField) {
-                buf.append(',');
-            }
-            String env = System.getenv("ENVIRONMENT");
-            appendField(buf, renderedFieldLabels.env.renderedLabel, env != null ? env : "unknown");
-            hasPrevField = true;
-        }
 
         if (renderedFieldLabels.level.isEnabled) {
             if (hasPrevField) {
@@ -230,21 +214,13 @@ public class JsonLayout extends Layout {
             hasPrevField = true;
         }
 
-        if (renderedFieldLabels.logger.isEnabled) {
-            if (hasPrevField) {
-                buf.append(',');
-            }
-            appendField(buf, renderedFieldLabels.logger.renderedLabel, event.getLoggerName());
-            hasPrevField = true;
-        }
-
         if (
             renderedFieldLabels.mdc.isEnabled ||
             renderedFieldLabels.ndc.isEnabled ||
             renderedFieldLabels.host.isEnabled ||
             renderedFieldLabels.path.isEnabled ||
             renderedFieldLabels.thread.isEnabled ||
-            renderedFieldLabels.exceptionStacktrace.isEnabled
+            renderedFieldLabels.logger.isEnabled
         ) {
             StringBuilder extraBuf = new StringBuilder();
             extraBuf.setLength(0);
@@ -252,13 +228,9 @@ public class JsonLayout extends Layout {
 
             extraBuf.append('{');
 
-            if (renderedFieldLabels.exception.isEnabled) {
-                extraHasPrevField = appendException(extraBuf, event);
-            }
-
             if (renderedFieldLabels.location.isEnabled) {
                 if (extraHasPrevField) {
-                    extraBuf.append(',');
+                    buf.append(',');
                 }
                 extraHasPrevField = appendLocation(extraBuf, event);
             }
@@ -304,6 +276,13 @@ public class JsonLayout extends Layout {
                 extraHasPrevField = true;
             }
 
+            if (renderedFieldLabels.logger.isEnabled) {
+                if (extraHasPrevField) {
+                    extraBuf.append(',');
+                }
+                appendField(extraBuf, renderedFieldLabels.logger.renderedLabel, event.getLoggerName());
+                extraHasPrevField = true;
+            }
             extraBuf.append("}");
 
             if (hasPrevField) {
@@ -500,6 +479,9 @@ public class JsonLayout extends Layout {
             return false;
         }
 
+        appendQuotedName(buf, renderedFieldLabels.exception.renderedLabel);
+        buf.append(":{");
+
         boolean hasPrevField = false;
 
         @SuppressWarnings("ThrowableResultOfMethodCallIgnored")
@@ -536,6 +518,8 @@ public class JsonLayout extends Layout {
             }
             buf.append('\"');
         }
+
+        buf.append('}');
 
         return true;
     }
